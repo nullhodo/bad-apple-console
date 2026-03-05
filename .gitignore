@@ -1,0 +1,14 @@
+/*
+
+!README.md
+!.gitignore
+
+!Video_to_AA/
+/Video_to_AA/*
+!/Video_to_AA/convert.py
+
+!page/
+/page/*
+!/page/index.html
+!/page/asciiart_database.js
+!/page/main.js
