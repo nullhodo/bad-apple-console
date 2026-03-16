@@ -1,53 +1,62 @@
-const FRAME_RATE = 30;
+(function () {
+    const FRAME_RATE = 30;
+    const FRAME_DURATION = 1000 / FRAME_RATE;
 
-let asciiFrames = null; // アスキーアートのフレームを格納する変数
-let animationInterval = null; // アニメーションのID
+    let asciiFrames = null;
+    let animationId = null;
+    let isPlaying = false;
 
-/**
- * asciiart_database.jsから呼び出されるコールバック関数
- * ページ読み込み時に自動で実行され、データを変数に格納する
- * @param {object} data - 読み込まれたJSONデータ
- */
-function loadData(data) {
-    if (data && data.frames) {
-        asciiFrames = data.frames;
-        //console.log(`データ読み込み完了。${asciiFrames.length}フレーム。再生準備OK`);
-        //console.log("コンソールで play() を実行してください。");
-    } else {
-        console.error('データの読み込みに失敗しました。');
-    }
-}
-
-/**
- * コンソールから実行するための再生開始関数
- */
-function play() {
-    if (!asciiFrames) {
-        console.error('再生データがありません。');
-        return;
-    }
-
-    let frameIndex = 0;
-
-    // 実行中のアニメーションがあれば停止
-    if (animationInterval) {
-        clearInterval(animationInterval);
-    }
-
-    // console.log('--- 再生開始 ---');
-
-    animationInterval = setInterval(() => {
-        //console.clear();
-        // frameIndexをnで割った余りが0のとき (＝nフレームごと) にコンソールをクリア
-        if (frameIndex % 1200 === 0) {
-            console.clear();
+    // データ読み込み用コールバック
+    window.loadData = function (data) {
+        if (data && Array.isArray(data.frames)) {
+            asciiFrames = data.frames;
+        } else {
+            console.error('[Error] Invalid data format');
         }
-        console.log(asciiFrames[frameIndex]);
-        frameIndex++;
+    };
 
-        if (frameIndex >= asciiFrames.length) {
-            clearInterval(animationInterval);
-            // console.log('--- fin ---');
+    // 再生開始
+    window.play = function () {
+        if (!asciiFrames) return console.error('[Error] Data not loaded');
+        if (isPlaying) return;
+
+        isPlaying = true;
+        let startTime = performance.now();
+        let lastRenderedFrame = -1;
+
+        function loop(currentTime) {
+            if (!isPlaying) return;
+
+            const elapsedTime = currentTime - startTime;
+            const currentFrameIndex = Math.floor(elapsedTime / FRAME_DURATION);
+
+            if (currentFrameIndex >= asciiFrames.length) {
+                isPlaying = false;
+                animationId = null;
+                return;
+            }
+
+            if (currentFrameIndex > lastRenderedFrame) {
+                // 1200フレームごとにクリア
+                if (currentFrameIndex > 0 && currentFrameIndex % 1200 === 0) {
+                    console.clear();
+                }
+                console.log(asciiFrames[currentFrameIndex]);
+                lastRenderedFrame = currentFrameIndex;
+            }
+
+            animationId = requestAnimationFrame(loop);
         }
-    }, 1000 / FRAME_RATE);
-}
+        animationId = requestAnimationFrame(loop);
+    };
+
+    // 停止
+    window.stop = function () {
+        if (isPlaying && animationId !== null) {
+            cancelAnimationFrame(animationId);
+            isPlaying = false;
+            animationId = null;
+            console.log('=== Stopped ===');
+        }
+    };
+})();
